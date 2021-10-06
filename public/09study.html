@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+</head>
+<body>
+    <div id ="root1"></div>
+
+    <script type="text/babel">
+        //맨밑에 ReactDOM.render에 닫아준애가 부모 컴포넌트
+        class App2 extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.state = this.load();
+
+                this.textChange = this.textChange.bind(this);
+                this.buttonClick = this.buttonClick.bind(this);
+
+
+            } // App2 생성자 끝나는 부분
+
+            save() {
+                console.log("localStorage에 저장 되었습니다");
+                localStorage.state = JSON.stringify(this.state);
+            }
+
+            load() {
+                let outputData;
+                try {
+                    // localStrage에 문자열로 저장 된 데이터를 가져온다.
+                    // tomcat서버에서 Ajax로 JSON을 받아 올수 있다
+                    // 주의 : 크로스 도메인 문제가 생길 수 있다. (IP가 같더라도 Port가 다르면 다른 서버로 간주한다.)
+                    // CORS 설정을 서버에 해야 한다. (@CrossOrigin 어노테이션 이용)
+                    outputData = JSON.parse(localStorage.state);
+                } catch(e) {
+                } // end of try catch ....
+                // 만약에 output에 데이터가 있다면  객체로 변환한다.
+                if(outputData !== undefined && outputData.keyCount !== undefined && outputData.currentValue !== undefined) {
+                    outputData = JSON.parse(localStorage.state);
+                } 
+                return outputData;
+                
+            }
+
+
+            // input 부분에 내용을 바뀔수있게 해주는 역할 
+            textChange(event) { 
+                this.setState({
+                    currentValue : event.target.value
+                });
+            }
+
+            // 버튼 클릭판정 일때 글 추가 되는 기능 
+            buttonClick(event) {
+                console.log("버튼을 눌렀습니다", event.target);
+                if(this.state.currentValue.trim() !== '') {
+                    let newTodo = {
+                        key: this.state.keyCount,
+                        isDone: false,
+                        text: this.state.currentValue
+                    }
+                    // this.setState({
+                    //     todos : [...this.state.todos]
+
+                    // });
+
+                    //기존에 있던 값 1 추가로 입력해준값 newTodo에 담아서 순서대로 출력
+                    this.setState({
+                        todos: [newTodo, ...this.state.todos]
+                    });
+                    // 카운트 증가 시키기
+                    this.state.keyCount += 1;
+                    this.state.currentValue = ""; // input의 내용 비우기
+                }
+            }
+
+            removeItem(key, event) {}
+
+            changeCheckData(key, checked) {}
+
+            componentDidUpdate(prevProps) {}
+
+            
+
+
+            render() {
+                return (
+                    <div>
+                        <h1>글 목록</h1> 
+                         <input type="text"
+                             value = {this.state.currentValue}
+                             onChange = {this.textChange}
+                             onKeyDown = {(event) =>{
+
+                                // keyCode 13은 Enter임.
+                                if(event.keyCode == 13) {
+                                    this.buttonClick(event);
+                                }
+                             }} // 엔터로 buttonClick 유도
+                         />
+
+                         <button onClick = {this.buttonClick}>추가</button>
+                         <ol>
+                            {
+                                this.state.todos.map((todo)=>{
+                                    return <TodoItem2  text={todo.text} isDone={todo.isDone} 
+                                    keyCode={todo.key}  />
+                                })
+                            }
+                        </ol> 
+                    </div>
+
+                );
+            }
+        } // class App2 끝나는 부분
+
+
+        // 자식 컴포넌트
+        class TodoItem2 extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    isDone : props.isDone,
+                    keyCode : props.keyCode
+                }
+            } // TodoItem2 생성자 끝나는 부분
+
+            render() {
+                let listStyleObj;
+
+                return (
+                    <div>
+                        <li>
+                            <span style={listStyleObj}>{this.props.text}</span>
+                        </li>
+                    </div>
+                );
+
+            }
+        } // class TodoItem2 끝나는 부분
+
+
+
+
+        ReactDOM.render(<App2 />, document.getElementById("root1"));
+    </script>
+    
+</body>
+</html>

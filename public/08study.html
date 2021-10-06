@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        class App extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.state = this.load();
+
+                // localStorage.state = JSON.stringify(this.state);
+                // console.log(JSON.parse(localStorage.state) );
+                this.textChange = this.textChange.bind(this);
+                this.buttonClick = this.buttonClick.bind(this);
+                this.removeItem = this.removeItem.bind(this);
+                this.changeCheckData = this.changeCheckData.bind(this);                
+            }// constructor ...
+
+            save() {
+                console.log("localStorage에 저장 되었습니다");
+                localStorage.state = JSON.stringify(this.state);
+            }
+
+            load() {
+                let outputData;
+                try {
+                    // localStrage에 문자열로 저장 된 데이터를 가져온다.
+                    // tomcat서버에서 Ajax로 JSON을 받아 올수 있다
+                    // 주의 : 크로스 도메인 문제가 생길 수 있다. (IP가 같더라도 Port가 다르면 다른 서버로 간주한다.)
+                    // CORS 설정을 서버에 해야 한다. (@CrossOrigin 어노테이션 이용)
+                    outputData = JSON.parse(localStorage.state);
+                } catch(e) {
+                } // end of try catch ....
+                // 만약에 output에 데이터가 있다면  객체로 변환한다.
+                if(outputData !== undefined && outputData.keyCount !== undefined && outputData.currentValue !== undefined) {
+                    outputData = JSON.parse(localStorage.state);
+                } else {
+                    outputData = {
+                        currentValue : "하면된다! 정신차리자!",
+                        keyCount: 2,
+                        todos : [{key:0,isDone: true,text: '프로젝트 기획하기'},{key:1,isDone: false,text: '프로젝트 설계하기'}]
+                    }
+                }
+                return outputData;
+            }
+            // input의 value값을 state에 새로 적용한다.
+            textChange(event){
+                this.setState({
+                    currentValue : event.target.value
+                });
+            }
+
+            buttonClick(event) {
+                console.log("버튼을 눌렀습니다", event.target);
+                if(this.state.currentValue.trim() !== '') {
+                    let newTodo = {
+                        key: this.state.keyCount,
+                        isDone: false,
+                        text: this.state.currentValue
+                    }
+                    this.setState({
+                        todos: [newTodo, ...this.state.todos]
+                    });
+                    // 카운트 증가 시키기
+                    this.state.keyCount += 1;
+                    this.state.currentValue = ''; // input의 내용 비우기
+                }
+            }
+
+            // 부모 콤포넌트에 있는 removeItem 메소드
+            removeItem(key, event) {
+                console.log("removeItem >>> key :", key);
+                // todos리트에서 key가 포함된 요소를 찾아서 제거
+                // filter(), findIndex(), for문 등을 이용해서 제거 할 수 있다.
+                // let todoList = [...this.state.todos];
+                // for(var i=0; i<todoList.length; i++) {
+                //     if( key === todoList[i].key) {
+                //         //console.log(todoList[i]);
+                //         todoList.splice(i, 1);
+                //         break;
+                //     }
+                // }
+                //console.log(todoList, this.state.todos);
+                this.setState({
+                    todos: this.state.todos.filter( (todo)=> {
+                        return todo.key !== key
+                    })
+                });
+            }
+
+            componentDidUpdate(prevProps) {
+                if(prevProps.todos !== this.props.todos) {
+                    this.setState({
+                        todos: this.props.todos
+                    });
+                }
+            }
+
+            changeCheckData(key, checked) {
+                console.log("changeCheckData >>", key, checked);
+                let todoList = [...this.state.todos];
+                for(var i=0; i<todoList.length; i++) {
+                    if(todoList[i].key === key) {
+                        todoList[i].isDone = checked;
+                    }
+                }
+                this.setState({
+                    todos : todoList
+                });
+            }
+
+            render() {
+                // localStorage에 저장
+                this.save();
+                return (
+                    <div>
+                        <h1>글 목록</h1>
+                        
+                        <input type="text" 
+                            value={this.state.currentValue} 
+                            onChange={this.textChange} 
+                            onKeyDown={(event)=>{
+                                //Enter키가 눌러 졌는가 검사. (event.keyCode가 13이면 Enter이다.)
+                                if(event.keyCode == 13) {
+                                    // console.log("Enter키가 눌러졌습니다.");
+                                    // 트리거 형태로 저장 함수를 호출
+                                    this.buttonClick(event);
+                                }
+                            }}
+                        />
+                        <button onClick={this.buttonClick}>추가</button>
+                        <ol>
+                            {
+                                this.state.todos.map((todo)=>{
+                                    return <TodoItem text={todo.text} isDone={todo.isDone}
+                                     keyCode={todo.key} onBtnClick={this.removeItem} onCheck={this.changeCheckData} />
+                                })
+                            }
+                        </ol>
+                    </div>
+                );
+            }
+        } // end of App Component
+
+
+        // 자식 콤포넌트
+        class TodoItem extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    isDone : props.isDone,
+                    listStyleObj : {"textDecoration":""},
+                    keyCode : props.keyCode
+                }
+            }
+
+            // 부모 콤포넌트의  state 값이 변경 된것을 작식 콤포넌트에도 적용 해야 한다.
+            componentDidUpdate(prevProps) {
+                if(prevProps.keyCode !== this.props.keyCode) {
+                    this.setState({
+                        keyCode: this.props.keyCode
+                    });
+                }
+                if(prevProps.isDone !== this.props.isDone) {
+                    this.setState({
+                        isDone: this.props.isDone
+                    })
+                }
+            }
+
+            render() {
+                let listStyleObj = {"textDecoration":this.state.isDone ? "underline" : ""}
+                return (
+                    <div>
+                        <li>
+                            <input checked={this.state.isDone} type="checkbox" onChange={(event)=>{
+                                this.props.onCheck(this.state.keyCode, !this.state.isDone);
+                            }}/>
+                            <span style={listStyleObj}>{this.props.text}</span>
+                            <button onClick={(event)=>{
+                                // this.state에 저장 하는 경우 부모콤포넌트의 값이 변경될때 
+                                // this.state를 componentDidUpdate()갱신 해야한다.
+                                //console.log(this.state.keyCode, this.props.keyCode);
+                                this.props.onBtnClick(this.props.keyCode, event);
+                            }}>삭제하기</button>
+                        </li>
+                    </div>
+                );
+            }
+        }// end of TodoItem Component
+
+        ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+</body>
+</html>
